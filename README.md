@@ -16,7 +16,6 @@ It is mounted on a prototyping board to a Raspberry Pi rev 2\3 model B.
 |  MOSI    | GPIO10      |    IN     |
 |  SLCK    | GPIO11      |   IN      |
 |  NSS     | GPIO08      |   IN      |
-|          | GPIO 4      |    IN     |
 
 # Code Examples
 test.py
