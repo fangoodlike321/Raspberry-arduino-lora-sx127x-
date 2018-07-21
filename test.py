@@ -18,17 +18,17 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 import threading
 
-url='http://sunhaojie.applinzi.com/post.php'
-receiver= "578306182@qq.com"  
-sender = "f578306182@163.com"  
-pwd= "FANai555"
-def SomeOne_timer():
+url='******************'
+receiver= "**********"  #Email Alram ,just input the Email you want send
+sender = "*********"  
+pwd= "*********"
+def SomeOne_timer(): #timer,make send email period
     global SomeFlag
     SomeFlag =SomeFlag  + 1
 def Fire_timer():
     global FireFlag
     FireFlag =FireFlag + 1
-def sendMsgHT(x,y):
+def sendMsgHT(x,y):          #tempture send to PHP
     textmod = {"tem":y,
                 "hum":x
                 }
@@ -37,8 +37,7 @@ def sendMsgHT(x,y):
     req = request.Request(url=url,data=textmod,headers=header_dict)
     res = request.urlopen(req)
     res = res.read()
-    #print(res)
-    #print(res.decode(encoding='utf-8'))
+    
 def sendVideo(filename):                              #send video to PHP server
     with picamera.PiCamera() as camera:
         filename = str(filename)
@@ -54,7 +53,7 @@ def sendVideo(filename):                              #send video to PHP server
         files = {'baimafeima': open(filename+'.mp4', 'rb')}
         req = requests.post(url=url,files=files)
         print(req.text)
-def sendWarining(text1,text2):
+def sendWarining(text1,text2):     #Email 
     msg = MIMEMultipart()
     msg["Subject"] =text1     #邮件的主题
     msg["From"] = sender  
@@ -81,7 +80,7 @@ def getOrder():                               #get order from PHP server
 class LoRaRcvCont(LoRa): #recieve data from lora
     def __init__(self): #初始化函数
         super(LoRaRcvCont, self).__init__(False)
-        self.set_mode(MODE.SLEEP)     #设置sleep以便对寄存器操作
+        self.set_mode(MODE.SLEEP)     #设置sleep以便对寄存器操作(make mode sleep to control the reg..)
         self.set_dio_mapping([1,0,0,0,0,0]) #设置dio1口
     def startSend(self,msg):                  #send tp lora
         self.set_mode(MODE.STDBY)
@@ -142,7 +141,6 @@ if __name__ == '__main__':
     FireBefore,FireFlag = 1,1
     global SomeBefore,SomeFlag
     SomeBefore,SomeFlag = 1,1
-    global nowTime 
     while True:
         print(FireFlag)
         time.sleep(0.5)
@@ -156,7 +154,6 @@ if __name__ == '__main__':
             else :
                 sendVideo(videoName)
                 videoName= videoName + 1
-            print('camerOpen')
         elif temp =='so':
             lora.startSend(temp)
             EmailFlag = 1
