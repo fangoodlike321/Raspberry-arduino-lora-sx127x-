@@ -1,132 +1,201 @@
-#!/usr/bin/env python2.7
-
-""" This script runs a small number of unit tests. """
-
-# Copyright 2015 Mayer Analytics Ltd.
-#
-# This file is part of pySX127x.
-#
-# pySX127x is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public
-# License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# pySX127x is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
-# details.
-#
-# You can be released from the requirements of the license by obtaining a commercial license. Such a license is
-# mandatory as soon as you develop commercial activities involving pySX127x without disclosing the source code of your
-# own applications, or shipping pySX127x with a closed source product.
-#
-# You should have received a copy of the GNU General Public License along with pySX127.  If not, see
-# <http://www.gnu.org/licenses/>.
-
-
+from time import sleep
 from SX127x.LoRa import *
+from SX127x.LoRaArgumentParser import LoRaArgumentParser
 from SX127x.board_config import BOARD
-import unittest
+from urllib import parse,request
+import json
+import time
+import picamera
+import requests
+
+url='http://sunhaojie.applinzi.com/post.php'
 
 
-def get_reg(reg_addr):
-    return lora.get_register(reg_addr)
+def sendMsgHT(x,y):
+    textmod = {"tem":y,
+                "hum":x
+                }
+    textmod = json.dumps(textmod).encode(encoding='utf-8')
+    header_dict = {'User-Agent':'Mozilla/5.0(Windows NT 6.1; Trident/7.0;rv:11.0)like Gecko',"Content-Type":"application/json"}
+    req = request.Request(url=url,data=textmod,headers=header_dict)
+    res = request.urlopen(req)
+    res = res.read()
+    print(res)
+    print(res.decode(encoding='utf-8'))
+def sendImage():
+    with picamera.PiCamera() as camera:
+        camera.start_preview()
+        time.sleep(2)
+        for filename in camera.capture_continuous('img.jpg'):
+            print('Captured %s' % filename)
+            time.sleep(0.02) # 休眠5分钟
+            url='http://sunhaojie.applinzi.com/picture.php'
+            files = {'baimafeima': open('img.jpg', 'rb')}
+            req = requests.post(url=url,files=files)
+            print(req.text)
+def getOrder():
+    req = request.Request(url="http://sunhaojie.applinzi.com/info.php")
+    res = request.urlopen(req)
+    res = res.read()
+    return res.decode(encoding='utf-8')
+class LoRaRcvCont(LoRa): #recieve data from lora
+    def __init__(self, verbose=False):
+        super(LoRaRcvCont, self).__init__(verbose)
+        self.set_mode(MODE.SLEEP)
+        self.set_dio_mapping([0] * 6)#initialise DIO0 for rxdone  
 
+    def on_rx_done(self):
+        #BOARD.led_on()
+        print("\nRxDone")
+        self.clear_irq_flags(RxDone=1)
+        payload = self.read_payload(nocheck=True)          #read data
+        temp = str.split(bytes(payload).decode())
+        print(temp)
+        if temp[0] =='BADD':
+            if(temp[1] == 'HT'):
+                sendMsgHT(temp[2],temp[3])
+                #print("YES")
+        self.set_mode(MODE.SLEEP)
+        self.reset_ptr_rx()
+        #BOARD.led_off()
+        self.set_mode(MODE.RXCONT)
 
-def SaveState(reg_addr, n_registers=1):
-    """ This decorator wraps a get/set_register around the function (unittest) call.
-    :param reg_addr: Start of register addresses
-    :param n_registers: Number of registers to save. (Useful for MSB/LSB register pairs, etc.)
-    :return:
-    """
-    def decorator(func):
-        def wrapper(self):
-            reg_bkup = lora.get_register(reg_addr)
-            func(self)
-            lora.set_register(reg_addr, reg_bkup)
-        return wrapper
-    return decorator
+    def on_tx_done(self):
+        print("\nTxDone")
+        print(self.get_irq_flags())
 
+    def on_cad_done(self):
+        print("\non_CadDone")
+        print(self.get_irq_flags())
 
-class TestSX127x(unittest.TestCase):
+    def on_rx_timeout(self):
+        print("\non_RxTimeout")
+        print(self.get_irq_flags())
 
-    def test_setter_getter(self):
-        bkup = lora.get_payload_length()
-        for l in [1,50, 128, bkup]:
-            lora.set_payload_length(l)
-            self.assertEqual(lora.get_payload_length(), l)
+    def on_valid_header(self):
+        print("\non_ValidHeader")
+        print(self.get_irq_flags())
 
-    @SaveState(REG.LORA.OP_MODE)
-    def test_mode(self):
-        mode = lora.get_mode()
-        for m in [MODE.STDBY, MODE.SLEEP, mode]:
-            lora.set_mode(m)
-            self.assertEqual(lora.get_mode(), m)
+    def on_payload_crc_error(self):
+        print("\non_PayloadCrcError")
+        print(self.get_irq_flags())
 
-    @SaveState(REG.LORA.FR_MSB, n_registers=3)
-    def test_set_freq(self):
-        freq = lora.get_freq()
-        for f in [433.5, 434.5, 434.0, freq]:
-            lora.set_freq(f)
-            self.assertEqual(lora.get_freq(), f)
+    def on_fhss_change_channel(self):
+        print("\non_FhssChangeChannel")
+        print(self.get_irq_flags())
 
-    @SaveState(REG.LORA.MODEM_CONFIG_3)
-    def test_set_agc_on(self):
-        lora.set_agc_auto_on(True)
-        self.assertEqual((get_reg(REG.LORA.MODEM_CONFIG_3) & 0b100) >> 2, 1)
-        lora.set_agc_auto_on(False)
-        self.assertEqual((get_reg(REG.LORA.MODEM_CONFIG_3) & 0b100) >> 2, 0)
+    def start(self):
+        self.reset_ptr_rx()
+        self.set_mode(MODE.RXCONT)
+        counter = 5;
+        while counter:
+            sleep(.5)
+            rssi_value = self.get_rssi_value()
+            status = self.get_modem_status()
+            sys.stdout.flush()
+            sys.stdout.write("\r%d %d %d" % (rssi_value, status['rx_ongoing'], status['modem_clear']))
+            counter = counter - 1;
+        time.sleep(5)
+class LoRaBeacon(LoRa):
 
-    @SaveState(REG.LORA.MODEM_CONFIG_3)
-    def test_set_low_data_rate_optim(self):
-        lora.set_low_data_rate_optim(True)
-        self.assertEqual((get_reg(REG.LORA.MODEM_CONFIG_3) & 0b1000) >> 3, 1)
-        lora.set_low_data_rate_optim(False)
-        self.assertEqual((get_reg(REG.LORA.MODEM_CONFIG_3) & 0b1000) >> 3, 0)
+    def __init__(self, verbose=False):
+        super(LoRaBeacon, self).__init__(verbose)
+        self.set_mode(MODE.SLEEP)
+        lora.set_pa_config(pa_select=1)
+        self.set_dio_mapping([1,0,0,0,0,0])
 
-    @SaveState(REG.LORA.DIO_MAPPING_1, 2)
-    def test_set_dio_mapping(self):
+    def on_rx_done(self):
+        print("\nRxDone")
+        print(self.get_irq_flags())
+        print(map(hex, self.read_payload(nocheck=True)))
+        #elf.set_mode(MODE.SLEEP)
+        self.reset_ptr_rx()
+        self.set_mode(MODE.RXCONT)
 
-        dio_mapping = [1] * 6
-        lora.set_dio_mapping(dio_mapping)
-        self.assertEqual(get_reg(REG.LORA.DIO_MAPPING_1), 0b01010101)
-        self.assertEqual(get_reg(REG.LORA.DIO_MAPPING_2), 0b01010000)
-        self.assertEqual(lora.get_dio_mapping(), dio_mapping)
+    def on_tx_done(self,Lora_message):
+        global args
+        self.set_mode(MODE.STDBY)
+        self.clear_irq_flags(TxDone=1)
+        if args.single:
+            print
+            sys.exit(0)
+        #BOARD.led_off()
+        sleep(args.wait)
+        self.Lora_message=Lora_message
+        rawinput = self.Lora_message
+        data = [int(hex(ord(c)), 0) for c in rawinput]
+        #self.write_payload([0x0f])
+        self.write_payload(data)
+        #BOARD.led_on()
+        self.set_mode(MODE.TX)
 
-        dio_mapping = [2] * 6
-        lora.set_dio_mapping(dio_mapping)
-        self.assertEqual(get_reg(REG.LORA.DIO_MAPPING_1), 0b10101010)
-        self.assertEqual(get_reg(REG.LORA.DIO_MAPPING_2), 0b10100000)
-        self.assertEqual(lora.get_dio_mapping(), dio_mapping)
+    def on_cad_done(self):
+        print("\non_CadDone")
+        print(self.get_irq_flags())
 
-        dio_mapping = [0] * 6
-        lora.set_dio_mapping(dio_mapping)
-        self.assertEqual(get_reg(REG.LORA.DIO_MAPPING_1), 0b00000000)
-        self.assertEqual(get_reg(REG.LORA.DIO_MAPPING_2), 0b00000000)
-        self.assertEqual(lora.get_dio_mapping(), dio_mapping)
+    def on_rx_timeout(self):
+        print("\non_RxTimeout")
+        print(self.get_irq_flags())
 
-        dio_mapping = [0,1,2,0,1,2]
-        lora.set_dio_mapping(dio_mapping)
-        self.assertEqual(get_reg(REG.LORA.DIO_MAPPING_1), 0b00011000)
-        self.assertEqual(get_reg(REG.LORA.DIO_MAPPING_2), 0b01100000)
-        self.assertEqual(lora.get_dio_mapping(), dio_mapping)
+    def on_valid_header(self):
+        print("\non_ValidHeader")
+        print(self.get_irq_flags())
 
-        dio_mapping = [1,2,0,1,2,0]
-        lora.set_dio_mapping(dio_mapping)
-        self.assertEqual(get_reg(REG.LORA.DIO_MAPPING_1), 0b01100001)
-        self.assertEqual(get_reg(REG.LORA.DIO_MAPPING_2), 0b10000000)
-        self.assertEqual(lora.get_dio_mapping(), dio_mapping)
+    def on_payload_crc_error(self):
+        print("\non_PayloadCrcError")
+        print(self.get_irq_flags())
 
-#    def test_set_lna_gain(self):
-#        bkup_lna_gain = lora.get_lna()['lna_gain']
-#        for target_gain in [GAIN.NOT_USED, GAIN.G1, GAIN.G2, GAIN.G6, GAIN.NOT_USED, bkup_lna_gain]:
-#            print(target_gain)
-#            lora.set_lna_gain(target_gain)
-#            actual_gain = lora.get_lna()['lna_gain']
-#            self.assertEqual(GAIN.lookup[actual_gain], GAIN.lookup[target_gain])
+    def on_fhss_change_channel(self):
+        print("\non_FhssChangeChannel")
+        print(self.get_irq_flags())
 
+    def start(self):
+        global args
+        sys.stdout.write("\rstart")
+        self.write_payload([0x0f])
+        self.set_mode(MODE.TX)
+        while True:
+            sleep(1)
+def Lora_GetMessage(x):
+    lora.set_mode(MODE.STDBY)
+    lora.start()
+    lora.set_mode(MODE.SLEEP)
+    #BOARD.teardown()
+def Lora_SendMessage(lora,Lora_message):
+    lora.set_mode(MODE.STDBY)
+    lora.start()
+    lora.set_mode(MODE.SLEEP)
 
 if __name__ == '__main__':
-
     BOARD.setup()
-    lora = LoRa(verbose=False)
-    unittest.main()
-    BOARD.teardown()
+    temp = 1;
+    temp1 = 1;
+    while True:
+        if getOrder() == True:
+            if temp1 ==1:
+                BOARD.setup()
+                parser = LoRaArgumentParser("A simple LoRa beacon")
+                parser.add_argument('--single', '-S', dest='single', default=False, action="store_true", help="Single transmission")
+                parser.add_argument('--wait', '-w', dest='wait', default=1, action="store", type=float, help="Waiting time between transmissions (default is 0s)")
+                lora = LoRaBeacon(verbose=False)
+                args = parser.parse_args(lora)
+                lora.set_pa_config(pa_select=1)
+                Lora_mess = getOrder()
+                Lora_SendMessage (lora1,Lora_mess)
+                temp1 = temp1+1;
+            else:
+                Lora_mess = getOrder()
+                Lora_SendMessage (lora1,Lora_mess)
+        else:
+            if temp ==1:
+                BOARD.setup()
+                parser = LoRaArgumentParser("Continous LoRa receiver.")
+                lora = LoRaRcvCont(verbose=False)
+                args = parser.parse_args(lora)
+                lora.set_pa_config(pa_select=1)
+                lora.set_freq(411)
+                Lora_GetMessage(temp)
+                temp = temp + 1;
+            else:
+                Lora_GetMessage(lora)
+                time.sleep(1)
