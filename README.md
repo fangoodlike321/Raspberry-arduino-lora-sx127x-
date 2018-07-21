@@ -21,18 +21,16 @@ It is mounted on a prototyping board to a Raspberry Pi rev 2\3 model B.
 # Code Examples
 test.py
 
-
 this code file contain sending and recieving messages between adrinouo.
 
 
 # Eorror you may get:
-1:no module named "SPI":\n
+1:no module named "SPI":
 
 
 make sure you Open the SPI (sudo raspi-config   ---> interface *** ---->open the SPI )
 
-
-2:asseration error:\n
+2:asseration error:
 
 
 make sure you had connected the Raspberry right!!!!!!!!!!!!!\n
