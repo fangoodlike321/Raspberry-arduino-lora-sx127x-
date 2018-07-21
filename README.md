@@ -33,7 +33,7 @@ make sure you Open the SPI (sudo raspi-config   ---> interface *** ---->open the
 2:asseration error:
 
 
-make sure you had connected the Raspberry right!!!!!!!!!!!!!\n
+make sure you had connected the Raspberry right!!!!!!!!!!!!!
 
 
 # References:
