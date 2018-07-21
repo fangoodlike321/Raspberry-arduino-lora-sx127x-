@@ -20,11 +20,12 @@ It is mounted on a prototyping board to a Raspberry Pi rev 2\3 model B.
 
 # Code Examples
 test.py
-|this code file contain sending and recieving messages between adrinouo .
+|this code file contain sending and recieving messages between adrinouo.
+
 other very good codes can dowload from Github just by searching|
 # Eorror you may get:
-1:no module named "SPI":
-make sure you Open the SPI (sudo raspi-config   ---> interface *** ---->open the SPI )
-2:asseration error:
-make sure you had connected the Raspberry right!!!!!!!!!!!!!
+1:no module named "SPI":\n
+make sure you Open the SPI (sudo raspi-config   ---> interface *** ---->open the SPI )\n
+2:asseration error:\n
+make sure you had connected the Raspberry right!!!!!!!!!!!!!\n
 # References:
