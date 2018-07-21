@@ -38,19 +38,23 @@ Prototyping on a full-blown OS using high level programming languages has severa
 
 
 # Hardware
-
-The transceiver module is a SX1276 based Modtronix [inAir9B](http://modtronix.com/inair9.html). 
-It is mounted on a prototyping board to a Raspberry Pi rev 2 model B.
+The transceiver module is a SX1276/7/8/9
+It is mounted on a prototyping board to a Raspberry Pi rev 2\3 model B.
 
 | Proto board pin | RaspPi GPIO | Direction |
 |:----------------|:-----------:|:---------:|
-| inAir9B DIO0    | GPIO 22     |    IN     |
-| inAir9B DIO1    | GPIO 23     |    IN     |
-| inAir9B DIO2    | GPIO 24     |    IN     |
-| inAir9B DIO3    | GPIO 25     |    IN     |
-| inAir9b Reset   | GPIO ?      |    OUT    |
-| LED             | GPIO 18     |    OUT    |
-| Switch          | GPIO 4      |    IN     |
+|  DIO0    | GPIO 22     |    IN     |
+|  DIO1    | GPIO 23     |    IN     |
+|  DIO2    | GPIO 24     |    IN     |
+|  DIO3    | GPIO 25     |    IN     |
+|  Reset   | GPIO ?      |    OUT    |
+|  vcc     | GPIO 1      |    POWER  |
+|  GND     | whaterver   |    GND    |
+|  MISO    | GPIO09      |   IN      |
+|  MOSI    | GPIO10      |    IN     |
+|  SLCK    | GPIO11      |   IN      |
+|  NSS     | GPIO08      |   IN      |
+|          | GPIO 4      |    IN     |
 
 Todo:
 - [ ] Add picture(s)
@@ -58,7 +62,9 @@ Todo:
 
 
 # Code Examples
-
+test.py
+this code file contain sending and recieving messages between adrinouo .
+other very good codes can dowload from Github just by searching
 ### Overview
 First import the modules 
 ```python
@@ -76,7 +82,7 @@ lora.set_mode(MODE.STDBY)
 ```
 Registers are queried like so:
 ```python
-print lora.version()        # this prints the sx127x chip version
+print lora.get_version()        # this prints the sx127x chip version
 print lora.get_freq()       # this prints the frequency setting 
 ```
 and setting registers is easy, too
@@ -101,49 +107,6 @@ In the end the resources should be freed properly
 ```python
 BOARD.teardown()
 ```
-
-### More details
-Most functions of `SX127x.Lora` are setter and getter functions. For example, the setter and getter for 
-the coding rate are demonstrated here
-```python 
-print lora.get_coding_rate()                # print the current coding rate
-lora.set_coding_rate(CODING_RATE.CR4_6)     # set it to CR4_6
-```
-
-@todo
-
-
-# Installation
-
-Make sure SPI is activated on you RaspberryPi: [SPI](https://www.raspberrypi.org/documentation/hardware/raspberrypi/spi/README.md)
-**pySX127x** requires these two python packages:
-* [RPi.GPIO](https://pypi.python.org/pypi/RPi.GPIO") for accessing the GPIOs, it should be already installed on
-  a standard Raspian Linux image
-* [spidev](https://pypi.python.org/pypi/spidev) for controlling SPI
-
-In order to install spidev download the source code and run setup.py manually:
-```bash
-wget https://pypi.python.org/packages/source/s/spidev/spidev-3.1.tar.gz
-tar xfvz  spidev-3.1.tar.gz
-cd spidev-3.1
-sudo python setup.py install
-```
-
-At this point you may want to confirm that the unit tests pass. See the section [Tests](#tests) below.
-
-You can now run the scripts. For example dump the registers with `lora_util.py`: 
-```bash
-rasp$ sudo ./lora_util.py
-SX127x LoRa registers:
- mode               SLEEP
- freq               434.000000 MHz
- coding_rate        CR4_5
- bw                 BW125
- spreading_factor   128 chips/symb
- implicit_hdr_mode  OFF
- ... and so on ....
-```
-
 
 # Class Reference
 
