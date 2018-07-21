@@ -49,8 +49,8 @@ def sendVideo(filename):                              #send video to PHP server
         subprocess.Popen("MP4Box -add {0}.h264 {1}.mp4".format(filename, filename), shell= True)
         time.sleep(0.5)
         subprocess.Popen("rm {0}.h264".format(filename), shell= True)
-        url='http://sunhaojie.applinzi.com/picture.php'
-        files = {'baimafeima': open(filename+'.mp4', 'rb')}
+        url=*********************'
+        files = {'baimafeima': open(filename+'.mp4', 'rb')} #baimafeima is a key which you should define in order to send to php
         req = requests.post(url=url,files=files)
         print(req.text)
 def sendWarining(text1,text2):     #Email 
@@ -72,7 +72,7 @@ def sendWarining(text1,text2):     #Email
         print('邮件发送失败！')
     return 0
 def getOrder():                               #get order from PHP server
-    req = request.Request(url="http://sunhaojie.applinzi.com/info.php")
+    req = request.Request(url="**************************")
     res = request.urlopen(req)
     res = res.read()
     print(res)
@@ -85,8 +85,6 @@ class LoRaRcvCont(LoRa): #recieve data from lora
     def startSend(self,msg):                  #send tp lora
         self.set_mode(MODE.STDBY)
         self.clear_irq_flags(TxDone=1)
-        sys.stdout.flush()
-        print("Inputis",msg)
         rawinput = msg
         data = [int(hex(ord(c)), 0) for c in rawinput]
         count1 = 5
